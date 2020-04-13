@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Products>
+  <Product>
+    <Name>SK316后灯</Name>
+    <BaseCords>
+      <BaseCord1>Barcode</BaseCord1>
+      <BaseCord2>AA</BaseCord2>
+      <serial>aaaa</serial>
+    </BaseCords>
+  </Product>
+</Products>
