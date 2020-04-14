@@ -360,6 +360,656 @@ namespace Printer
             }
         }
         #endregion
+       
+
+        #region socket收发相关
+        private Socket ConnectSocket(string server, int port)
+        {
+            Socket s = null;
+            //IPHostEntry hostEntry = null;
+
+            IPAddress addr = IPAddress.Parse(server);
+
+            IPEndPoint endp = new IPEndPoint(addr, port);
+            Socket tempSocket =
+                    new Socket(endp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            tempSocket.Connect(endp);
+
+            if (tempSocket.Connected)
+            {
+                s = tempSocket;
+                //break;
+            }
+            TXTLogHelper.LogBackup(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + "socket连接成功");
+            return s;
+        }
+
+        private List<Byte> SocketSendReceive(Socket s, Byte[] bytesSent)
+        {
+           
+            s.Send(bytesSent, bytesSent.Length, 0);
+            TXTLogHelper.LogBackup("发送给喷码机: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            int bytes = 0;
+            List<Byte> result = new List<Byte>();
+            Byte[] bytesReceived = new Byte[256];
+            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+           
+            if (bytesReceived[0] != 0x06)
+            {
+                SocketSendReceive(s, bytesSent);
+            }
+            else
+            {
+                if (bytes == 1)
+                {
+                    bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+                    for (int i = 0; i < bytes; i++)
+                    {
+                        result.Add(bytesReceived[i]);
+                    }
+                }
+                else
+                {
+                    for (int i = 1; i < bytes; i++)
+                    {
+                        result.Add(bytesReceived[i]);
+                    }
+                }
+            }
+            TXTLogHelper.LogBackup(DateTime.Now.ToString("喷码机接收: " + "yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString2(result));
+            return result;
+        }
+        private List<Byte> ControlSocketSendReceive(Socket s, Byte[] bytesSent)
+        {
+            s.Send(bytesSent, bytesSent.Length, 0);
+            TXTLogHelper.LogBackup("发送给控制器:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            // Receive the server home page content.
+            int bytes = 0;
+            List<Byte> result = new List<Byte>();
+            Byte[] bytesReceived = new Byte[256];
+
+            //Thread.Sleep(100);
+
+            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+
+            for (int i = 0; i < bytes; i++)
+            {
+                result.Add(bytesReceived[i]);
+            }
+            TXTLogHelper.LogBackup("控制器接收:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString2(result));
+            return result;
+        }
+        private void SelectTemplate(Socket s, Byte[] bytesSent)
+        {
+            s.Send(bytesSent, bytesSent.Length, 0);
+            TXTLogHelper.LogBackup("发送给喷码机:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            // Receive the server home page content.
+            int bytes = 0;
+            List<Byte> result = new List<Byte>();
+            Byte[] bytesReceived = new Byte[256];
+            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+            TXTLogHelper.LogBackup("喷码机接收:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString3(bytesReceived[0]));
+            if (bytesReceived[0] != 0x06)
+            {
+                SocketSendReceive(s, bytesSent);
+            }
+            //bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+            //for (int i = 0; i < bytes; i++)
+            //{
+            //    result.Add(bytesReceived[i]);
+            //}
+            //return result;
+        }
+        private void SendOutVar(Socket s, Byte[] bytesSent)
+        {
+            s.Send(bytesSent, bytesSent.Length, 0);
+            TXTLogHelper.LogBackup("发送给喷码机:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            // Receive the server home page content.
+            int bytes = 0;
+            List<Byte> result = new List<Byte>();
+            Byte[] bytesReceived = new Byte[256];
+            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+            //TXTLogHelper.LogBackup("喷码机接收:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString3(bytesReceived[0]));
+            //if (bytesReceived[0] != 0x06)
+            //{
+            //    SocketSendReceive(s, bytesSent);
+            //}
+            //bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+            //for (int i = 0; i < bytes; i++)
+            //{
+            //    result.Add(bytesReceived[i]);
+            //}
+            //return result;
+        }
+
+        #endregion
+        #region  界面按钮功能，数据上传数据库功能等
+        private void 启动服务ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if(bStartService)
+            {
+                MessageBox.Show("服务已启动");
+                return;
+            }
+            bStartService = true;
+             //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
+
+            ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
+            Thread.Sleep(50);
+            List<byte> returnlist = ControlSocketSendReceive(TcpController, controlHelper.readData());
+            analyPosition(returnlist);
+            //TcpController.Send(controlHelper.readData());
+
+            //startService = true;
+
+
+            Task.Factory.StartNew(() =>
+            {
+                CircleMain();
+            });
+        }
+        private void readPositionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            List<Byte> bytes = ControlSocketSendReceive(TcpController, controlHelper.readData());
+            analyPosition(bytes);
+            //TcpController.Send(controlHelper.readData());
+            //var result = new byte[TcpController._sk.Offset];
+            //Array.Copy(TcpController._sk.RecBuffer, 0, result, 0, TcpController._sk.Offset);
+            //if (result.Length >= 9)
+            //{
+            //    if (result[0] == 0x00 && result[1] == 0x01 && result[2] == 0x00 && result[3] == 0x00 && result[4] == 0x00 && result[5] == 0x1d && result[6] == 0x01 && result[7] == 0x03 && result[8] == 0x00)
+            //    {
+            //        var res = analyPosition(result); //次数暂时注销，看看效果
+            //    }
+            //}
+        }
+        private void 移动到指定点ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormInputPosition frmSelectProduct = new FormInputPosition();
+            string result = "";
+            //List<ProductData> resultList = new List<ProductData>();
+            if (frmSelectProduct.ShowDialog() == DialogResult.OK)
+            {
+                labelTextProduct.Text = frmSelectProduct.textBox1.Text;
+                List<byte> routePosList = new List<byte>();
+                routePosList.Add(0x02);
+                routePosList.Add(0x00);
+                routePosList.Add(0x00);
+                routePosList.Add(0x00);
+
+                byte[] PosX = BitConverter.GetBytes(250f);  //sudu  
+                byte[] PosY = BitConverter.GetBytes(0f);   //空位
+                byte[] PosZ = BitConverter.GetBytes(Convert.ToSingle(frmSelectProduct.textBox1.Text));   //y
+                byte[] Angle = BitConverter.GetBytes(Convert.ToSingle(frmSelectProduct.textBox2.Text));   //z
+                byte[] Angle1 = BitConverter.GetBytes(Convert.ToSingle(frmSelectProduct.textBox3.Text));   //x
+                byte[] Angle2 = BitConverter.GetBytes(0f);
+                routePosList.AddRange(PosX.ToList());
+                routePosList.AddRange(PosY.ToList());
+                routePosList.AddRange(PosZ.ToList());
+                routePosList.AddRange(Angle.ToList());
+                routePosList.AddRange(Angle1.ToList());
+                routePosList.AddRange(Angle2.ToList());
+                ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x22, 0xc0 }, routePosList.ToArray()));
+                Thread.Sleep(50);
+                ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x69 }, new byte[] { 0x01, 0x00 }));
+                //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x22, 0xc0 }, routePosList.ToArray()));
+                //Thread.Sleep(50);
+                //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x69 }, new byte[] { 0x01, 0x00 }));
+            }
+        }
+        private void addProductToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            FormAddProduct frmAddProduct = new FormAddProduct();
+            frmAddProduct.Show();
+        }
+        private void Panel1_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+        private void 模拟查询ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //GetStatusOfRtexController();
+            //SystemConfig current = Common.SystemConfig;
+            //List<SystemConfigProduct> plist = current.Products.ToList();
+            //SystemConfigProduct product = plist.Find(x => x.Name == labelTextProduct.Text);
+            //product.BaseCords.BaseCord1 = "99";
+            //Common.SaveConfigToFile(current);
+        }
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (bStartService)
+            {
+                MessageBox.Show("服务已启动");
+                return;
+            }
+            bStartService = true;
+
+            ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
+            List<Byte> bytes = ControlSocketSendReceive(TcpController, controlHelper.readData());
+            analyPosition(bytes);
+            Task.Factory.StartNew(() =>
+            {
+                CircleMain();
+            });
+        }
+        //public void logssave()
+        //{
+        //    while (true)
+        //    {
+        //        Thread.Sleep(500);
+        //        if(logstring.Count>0)
+        //        {
+
+        //        }
+                    
+        //    }
+        //}
+        public string byteToHexString(byte[] bytes)
+        {
+            var hexString = string.Empty;
+
+            if (bytes == null)
+                return hexString;
+            var strB = new StringBuilder();
+
+            foreach (var t in bytes)
+                strB.Append(t.ToString("X2"));
+            hexString = strB.ToString();
+
+            return hexString;
+        }
+        public string byteToHexString2(List<byte> bytes)
+        {
+            var hexString = string.Empty;
+
+            if (bytes == null)
+                return hexString;
+            var strB = new StringBuilder();
+
+            foreach (var t in bytes)
+                strB.Append(t.ToString("X2"));
+            hexString = strB.ToString();
+
+            return hexString;
+        }
+        public string byteToHexString3(byte bytes)
+        {
+            var hexString = string.Empty;
+
+            if (bytes == null)
+                return hexString;
+            var strB = new StringBuilder();
+
+            strB.Append(bytes.ToString("X2"));
+            hexString = strB.ToString();
+
+            return hexString;
+        }
+        private void pianyiSetToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormPIanYi frmSelectProduct = new FormPIanYi();
+            frmSelectProduct.textBox1.Text = XPianyi.ToString();
+            frmSelectProduct.textBox2.Text = YPianyi.ToString();
+            frmSelectProduct.textBox3.Text = ZPinyi.ToString();
+            string result = "";
+            //List<ProductData> resultList = new List<ProductData>();
+            if (frmSelectProduct.ShowDialog() == DialogResult.OK)
+            {
+                Configuration cfa = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+               cfa.AppSettings.Settings["pianyiliang"].Value = frmSelectProduct.textBox1.Text+","+ frmSelectProduct.textBox2.Text+","+ frmSelectProduct.textBox3.Text;
+
+              
+                cfa.Save();
+            }
+        }
+        private bool IsCanConnect(string url)
+        {
+            try
+            {
+                Ping objPingSender = new Ping();
+                PingOptions objPinOptions = new PingOptions();
+                objPinOptions.DontFragment = true;
+                string data = "";
+                byte[] buffer = Encoding.UTF8.GetBytes(data);
+                int intTimeout = 120;
+                PingReply objPinReply = objPingSender.Send(url, intTimeout, buffer, objPinOptions);
+                string strInfo = objPinReply.Status.ToString();
+                if (strInfo == "Success")
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+        private void addProductToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormAddProduct frmAddProduct = new FormAddProduct();
+            frmAddProduct.Show();
+        }
+        private void selectProductToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormSelectProduct frmSelectProduct = new FormSelectProduct();
+            string result = "";
+            List<ProductData> resultList = new List<ProductData>();
+            if (frmSelectProduct.ShowDialog() == DialogResult.OK)
+            {
+                labelTextProduct.Text = frmSelectProduct.labelComboxProducts.Text;
+
+                var product = Common.SystemConfig.Products.ToList().Find(t => t.Name == labelTextProduct.Text);
+
+                if (product == null) return;
+
+
+                labelTextProduct.textBox.Text = product.Name;
+                labelTextSum.textBox.Text = product.BaseCords.BaseCord1;
+                labelText1.textBox.Text = product.BaseCords.BaseCord2;
+                labelText2.textBox.Text = product.BaseCords.BaseCord3;
+
+                labelText4.textBox.Text = product.BaseCords.BaseCord4;
+                labelText5.textBox.Text = product.BaseCords.BaseCord5;
+                labelText6.textBox.Text = product.BaseCords.BaseCord6;
+                labelText7.textBox.Text = product.BaseCords.BaseCord7;
+                labelText8.textBox.Text = product.BaseCords.BaseCord8;
+
+                serialNo = product.BaseCords.BaseCord1 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord1);
+                serialNo2 = product.BaseCords.BaseCord2 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord2);
+                serialNo3 = product.BaseCords.BaseCord3 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord3);
+                serialNo4 = product.BaseCords.BaseCord4 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord4);
+                serialNo5 = product.BaseCords.BaseCord5 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord5);
+                serialNo6 = product.BaseCords.BaseCord6 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord6);
+                serialNo7 = product.BaseCords.BaseCord7 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord7);
+                serialNo8 = product.BaseCords.BaseCord8 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord8);
+
+                dataGridView1.Rows.Clear();
+                foreach (var d in product.Datas)
+                {
+
+                    var rowNum = dataGridView1.Rows.Add();
+                    dataGridView1.Rows[rowNum].Cells["No"].Value = d.No;
+                    dataGridView1.Rows[rowNum].Cells["Type"].Value = d.Type;
+                    dataGridView1.Rows[rowNum].Cells["data"].Value = d.Text;
+                    dataGridView1.Rows[rowNum].Cells["PosX"].Value = d.PosX;
+                    dataGridView1.Rows[rowNum].Cells["PosY"].Value = d.PosY;
+                    dataGridView1.Rows[rowNum].Cells["Angle"].Value = d.Angle;
+                    dataGridView1.Rows[rowNum].Cells["TemplateNo"].Value = d.TemplateNo;
+                    ProductData temp = new ProductData();
+                    temp.PosX = Convert.ToSingle(d.PosX);
+                    temp.PosY = Convert.ToSingle(d.PosY);
+                    temp.PosZ = 0f;
+                    temp.Angle = Convert.ToSingle(d.Angle);
+                    temp.Time = 0f;
+                    temp.TemplateNo = Convert.ToInt32(d.TemplateNo);
+
+
+                    resultList.Add(temp);
+
+                }
+            }
+
+
+
+            if (labelTextProduct.Text != "")
+            {
+                //清空list中的数据
+                routeList.Clear();
+                //_bStartPrint = true;
+                var product = Common.SystemConfig.Products.ToList().Find(x => x.Name == labelTextProduct.Text);
+                if (product == null) return;
+                PrintCal(product.Datas.ToList());
+            }
+
+            pictureBox1.Refresh();
+            MoveToHome();
+
+
+        }
+        private void testPrintToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormAddProduct form = new FormAddProduct();
+            form.isEdit = 1;
+            form.productName = labelTextProduct.Text;
+            form.Show();
+        }
+        public float dis(float x1, float y1, float x2, float y2)
+        {
+            double dx, dy;
+            dx = x2 - x1;
+            dy = y2 - y1;
+            return Convert.ToSingle(Math.Sqrt(dx * dx + dy * dy));
+        }
+        private void viewDataToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            FormBatchInstead form = new FormBatchInstead();
+
+            form.productName = labelTextProduct.Text;
+            form.Show();
+        }
+
+        /// <summary>
+        /// 复制产品
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void startToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SystemConfig current = Common.SystemConfig;
+            List<SystemConfigProduct> plist = current.Products.ToList();
+            SystemConfigProduct product = plist.Find(x => x.Name == labelTextProduct.Text);
+            SystemConfigProduct copyNew = TransReflection<SystemConfigProduct, SystemConfigProduct>(product);
+
+            copyNew.Name = product.Name + "-copy";
+            plist.Add(copyNew);
+            current.Products = plist.ToArray();
+
+            Common.SaveConfigToFile(current);
+            Common.GetSystemConfigFromXmlFile();
+            MessageBox.Show("复制成功，请重新打开程序");
+        }
+        /// <summary>
+        /// 利用反射进行深拷贝
+        /// </summary>
+        /// <typeparam name="TIn"></typeparam>
+        /// <typeparam name="TOut"></typeparam>
+        /// <param name="tIn"></param>
+        /// <returns></returns>
+        private static TOut TransReflection<TIn, TOut>(TIn tIn)
+        {
+            TOut tOut = Activator.CreateInstance<TOut>();
+            var tInType = tIn.GetType();
+            foreach (var itemOut in tOut.GetType().GetProperties())
+            {
+                var itemIn = tInType.GetProperty(itemOut.Name); ;
+                if (itemIn != null)
+                {
+                    itemOut.SetValue(tOut, itemIn.GetValue(tIn));
+                }
+            }
+            return tOut;
+        }
+        private void PictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void PictureBox1_Paint(object sender, PaintEventArgs e)
+        {
+            //Graphics g = e.Graphics.DrawLine;
+            for (int i = 0; i < routeList.Count; i++)
+            {
+                e.Graphics.DrawLine(Pens.Black, Math.Abs(routeList[i].startX), Math.Abs(routeList[i].startY), Math.Abs(routeList[i].endX), Math.Abs(routeList[i].endY));
+            }
+            //e.Graphics.DrawLine(Pens.Black, 10, 10, 100, 100);
+
+        }
+        //计算追溯号
+        public string GenerateDate()
+        {
+            DateTime currentDateTime = DateTime.Now;
+            string year = currentDateTime.Year.ToString().Substring(3, 1);
+            string month = currentDateTime.Month.ToString();
+            string day = currentDateTime.Day.ToString();
+
+            switch (month)
+            {
+                case "1":
+                    month = "1";
+                    break;
+                case "2":
+                    month = "2";
+                    break;
+                case "3":
+                    month = "3";
+                    break;
+                case "4":
+                    month = "4";
+                    break;
+                case "5":
+                    month = "5";
+                    break;
+                case "6":
+                    month = "6";
+                    break;
+                case "7":
+                    month = "7";
+                    break;
+                case "8":
+                    month = "8";
+                    break;
+                case "9":
+                    month = "9";
+                    break;
+                case "10":
+                    month = "X";
+                    break;
+                case "11":
+                    month = "Y";
+                    break;
+                case "12":
+                    month = "Z";
+                    break;
+                default:
+                    month = "";
+                    break;
+            }
+
+            switch (day)
+            {
+                case "1":
+                    day = "1";
+                    break;
+                case "2":
+                    day = "2";
+                    break;
+                case "3":
+                    day = "3";
+                    break;
+                case "4":
+                    day = "4";
+                    break;
+                case "5":
+                    day = "5";
+                    break;
+                case "6":
+                    day = "6";
+                    break;
+                case "7":
+                    day = "7";
+                    break;
+                case "8":
+                    day = "8";
+                    break;
+                case "9":
+                    day = "9";
+                    break;
+                case "10":
+                    day = "A";
+                    break;
+                case "11":
+                    day = "B";
+                    break;
+                case "12":
+                    day = "C";
+                    break;
+                case "13":
+                    day = "D";
+                    break;
+                case "14":
+                    day = "E";
+                    break;
+                case "15":
+                    day = "F";
+                    break;
+                case "16":
+                    day = "G";
+                    break;
+                case "17":
+                    day = "H";
+                    break;
+                case "18":
+                    day = "J";
+                    break;
+                case "19":
+                    day = "K";
+                    break;
+                case "20":
+                    day = "L";
+                    break;
+                case "21":
+                    day = "M";
+                    break;
+                case "22":
+                    day = "N";
+                    break;
+                case "23":
+                    day = "P";
+                    break;
+                case "24":
+                    day = "Q";
+                    break;
+                case "25":
+                    day = "R";
+                    break;
+                case "26":
+                    day = "S";
+                    break;
+                case "27":
+                    day = "T";
+                    break;
+                case "28":
+                    day = "U";
+                    break;
+                case "29":
+                    day = "V";
+                    break;
+                case "30":
+                    day = "W";
+                    break;
+                case "31":
+                    day = "X";
+                    break;
+                default:
+                    day = "";
+                    break;
+            }
+
+            return year + month + day + "Y";
+        }
+        #endregion
+
+
+
+
+
+
+
         #region 喷码相关
         public void CircleMain()
         {
@@ -956,25 +1606,34 @@ namespace Printer
             }
             if (routeEntity.dataType == "Text")
             {
-                SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
-                Thread.Sleep(100);
-                SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
-                Thread.Sleep(100);
-                SocketSendReceive(TcpPrinter, printerHelper.DataQueueDisable());
-                Thread.Sleep(100);
-                SocketSendReceive(TcpPrinter, printerHelper.enableDataQueue());
-                Thread.Sleep(100);
                 //SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
+                //Thread.Sleep(100);
+                //SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
+                //Thread.Sleep(100);
+                //SocketSendReceive(TcpPrinter, printerHelper.DataQueueDisable());
+                //Thread.Sleep(100);
+                //SocketSendReceive(TcpPrinter, printerHelper.enableDataQueue());
+                //Thread.Sleep(100);
+                ////SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
 
-                List<List<string>> sendData = new List<List<string>>();
-                for (int i = 0; i < sendDataList.Count; i++)
-                {
-                    List<string> temp = sendDataList[i].Split(',').ToList();
-                    sendData.Add(temp);
-                }
+                //List<List<string>> sendData = new List<List<string>>();
+                //for (int i = 0; i < sendDataList.Count; i++)
+                //{
+                //    List<string> temp = sendDataList[i].Split(',').ToList();
+                //    sendData.Add(temp);
+                //}
 
-                SocketSendReceive(TcpPrinter, printerHelper.DataQueueSendDataList(sendData));
+                //SocketSendReceive(TcpPrinter, printerHelper.DataQueueSendDataList(sendData));
                 //TcpPrinter.Send(printerHelper.sendDataQueue2(sendData));
+                SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
+                //TcpPrinter.Send(printerHelper.SendSelectByte(routeEntity.TemplateNo)); // 切换模板2
+                //Thread.Sleep(50);
+                for (int i = 0; i < sendDataList[0].Split(',').Length; i++)
+                {
+                    SelectTemplate(TcpPrinter, printerHelper.SendDataByte(sendDataList[0].Split(',')[i], i + 1));
+                    //TcpPrinter.Send(printerHelper.SendDataByte(sendDataList[0].Split(',')[i], i + 1));
+                    //Thread.Sleep(50);
+                }
 
 
 
@@ -1040,626 +1699,6 @@ namespace Printer
             var fPosZ = BitConverter.ToSingle(buffer, 17);
 
             return new List<float>() { fPosX, fPosY, fPosZ };
-        }
-        #endregion
-
-        #region socket收发相关
-        private Socket ConnectSocket(string server, int port)
-        {
-            Socket s = null;
-            //IPHostEntry hostEntry = null;
-
-            IPAddress addr = IPAddress.Parse(server);
-
-            IPEndPoint endp = new IPEndPoint(addr, port);
-            Socket tempSocket =
-                    new Socket(endp.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            tempSocket.Connect(endp);
-
-            if (tempSocket.Connected)
-            {
-                s = tempSocket;
-                //break;
-            }
-            TXTLogHelper.LogBackup(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + "socket连接成功");
-            return s;
-        }
-
-        private List<Byte> SocketSendReceive(Socket s, Byte[] bytesSent)
-        {
-            s.Send(bytesSent, bytesSent.Length, 0);
-            TXTLogHelper.LogBackup("发送给喷码机: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff")+ " " + byteToHexString(bytesSent));
-            int bytes = 0;
-            List<Byte> result = new List<Byte>();
-            Byte[] bytesReceived = new Byte[256];
-            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-           
-            if (bytesReceived[0] != 0x06)
-            {
-                SocketSendReceive(s, bytesSent);
-            }
-            else
-            {
-                if (bytes == 1)
-                {
-                    bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-                    for (int i = 0; i < bytes; i++)
-                    {
-                        result.Add(bytesReceived[i]);
-                    }
-                }
-                else
-                {
-                    for (int i = 1; i < bytes; i++)
-                    {
-                        result.Add(bytesReceived[i]);
-                    }
-                }
-            }
-            TXTLogHelper.LogBackup(DateTime.Now.ToString("喷码机接收: " + "yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString2(result));
-            return result;
-        }
-        private List<Byte> ControlSocketSendReceive(Socket s, Byte[] bytesSent)
-        {
-            s.Send(bytesSent, bytesSent.Length, 0);
-            TXTLogHelper.LogBackup("发送给控制器:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
-            // Receive the server home page content.
-            int bytes = 0;
-            List<Byte> result = new List<Byte>();
-            Byte[] bytesReceived = new Byte[256];
-
-            //Thread.Sleep(100);
-
-            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-
-            for (int i = 0; i < bytes; i++)
-            {
-                result.Add(bytesReceived[i]);
-            }
-            TXTLogHelper.LogBackup("控制器接收:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString2(result));
-            return result;
-        }
-        private void SelectTemplate(Socket s, Byte[] bytesSent)
-        {
-            s.Send(bytesSent, bytesSent.Length, 0);
-            TXTLogHelper.LogBackup("发送给喷码机:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
-            // Receive the server home page content.
-            int bytes = 0;
-            List<Byte> result = new List<Byte>();
-            Byte[] bytesReceived = new Byte[256];
-            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-            TXTLogHelper.LogBackup("喷码机接收:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString3(bytesReceived[0]));
-            if (bytesReceived[0] != 0x06)
-            {
-                SocketSendReceive(s, bytesSent);
-            }
-            //bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-            //for (int i = 0; i < bytes; i++)
-            //{
-            //    result.Add(bytesReceived[i]);
-            //}
-            //return result;
-        }
-        
-        #endregion
-        #region  界面按钮功能，数据上传数据库功能等
-        private void 启动服务ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if(bStartService)
-            {
-                MessageBox.Show("服务已启动");
-                return;
-            }
-            bStartService = true;
-             //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
-
-            ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
-            Thread.Sleep(50);
-            List<byte> returnlist = ControlSocketSendReceive(TcpController, controlHelper.readData());
-            analyPosition(returnlist);
-            //TcpController.Send(controlHelper.readData());
-
-            //startService = true;
-
-
-            Task.Factory.StartNew(() =>
-            {
-                CircleMain();
-            });
-        }
-        private void readPositionToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            List<Byte> bytes = ControlSocketSendReceive(TcpController, controlHelper.readData());
-            analyPosition(bytes);
-            //TcpController.Send(controlHelper.readData());
-            //var result = new byte[TcpController._sk.Offset];
-            //Array.Copy(TcpController._sk.RecBuffer, 0, result, 0, TcpController._sk.Offset);
-            //if (result.Length >= 9)
-            //{
-            //    if (result[0] == 0x00 && result[1] == 0x01 && result[2] == 0x00 && result[3] == 0x00 && result[4] == 0x00 && result[5] == 0x1d && result[6] == 0x01 && result[7] == 0x03 && result[8] == 0x00)
-            //    {
-            //        var res = analyPosition(result); //次数暂时注销，看看效果
-            //    }
-            //}
-        }
-        private void 移动到指定点ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormInputPosition frmSelectProduct = new FormInputPosition();
-            string result = "";
-            //List<ProductData> resultList = new List<ProductData>();
-            if (frmSelectProduct.ShowDialog() == DialogResult.OK)
-            {
-                labelTextProduct.Text = frmSelectProduct.textBox1.Text;
-                List<byte> routePosList = new List<byte>();
-                routePosList.Add(0x02);
-                routePosList.Add(0x00);
-                routePosList.Add(0x00);
-                routePosList.Add(0x00);
-
-                byte[] PosX = BitConverter.GetBytes(250f);  //sudu  
-                byte[] PosY = BitConverter.GetBytes(0f);   //空位
-                byte[] PosZ = BitConverter.GetBytes(Convert.ToSingle(frmSelectProduct.textBox1.Text));   //y
-                byte[] Angle = BitConverter.GetBytes(Convert.ToSingle(frmSelectProduct.textBox2.Text));   //z
-                byte[] Angle1 = BitConverter.GetBytes(Convert.ToSingle(frmSelectProduct.textBox3.Text));   //x
-                byte[] Angle2 = BitConverter.GetBytes(0f);
-                routePosList.AddRange(PosX.ToList());
-                routePosList.AddRange(PosY.ToList());
-                routePosList.AddRange(PosZ.ToList());
-                routePosList.AddRange(Angle.ToList());
-                routePosList.AddRange(Angle1.ToList());
-                routePosList.AddRange(Angle2.ToList());
-                ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x22, 0xc0 }, routePosList.ToArray()));
-                Thread.Sleep(50);
-                ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x69 }, new byte[] { 0x01, 0x00 }));
-                //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x22, 0xc0 }, routePosList.ToArray()));
-                //Thread.Sleep(50);
-                //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x69 }, new byte[] { 0x01, 0x00 }));
-            }
-        }
-        private void addProductToolStripMenuItem1_Click(object sender, EventArgs e)
-        {
-            FormAddProduct frmAddProduct = new FormAddProduct();
-            frmAddProduct.Show();
-        }
-        private void Panel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-        private void 模拟查询ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            //GetStatusOfRtexController();
-            //SystemConfig current = Common.SystemConfig;
-            //List<SystemConfigProduct> plist = current.Products.ToList();
-            //SystemConfigProduct product = plist.Find(x => x.Name == labelTextProduct.Text);
-            //product.BaseCords.BaseCord1 = "99";
-            //Common.SaveConfigToFile(current);
-        }
-        private void button1_Click(object sender, EventArgs e)
-        {
-            if (bStartService)
-            {
-                MessageBox.Show("服务已启动");
-                return;
-            }
-            bStartService = true;
-
-            ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
-            List<Byte> bytes = ControlSocketSendReceive(TcpController, controlHelper.readData());
-            analyPosition(bytes);
-            Task.Factory.StartNew(() =>
-            {
-                CircleMain();
-            });
-        }
-        //public void logssave()
-        //{
-        //    while (true)
-        //    {
-        //        Thread.Sleep(500);
-        //        if(logstring.Count>0)
-        //        {
-
-        //        }
-                    
-        //    }
-        //}
-        public string byteToHexString(byte[] bytes)
-        {
-            var hexString = string.Empty;
-
-            if (bytes == null)
-                return hexString;
-            var strB = new StringBuilder();
-
-            foreach (var t in bytes)
-                strB.Append(t.ToString("X2"));
-            hexString = strB.ToString();
-
-            return hexString;
-        }
-        public string byteToHexString2(List<byte> bytes)
-        {
-            var hexString = string.Empty;
-
-            if (bytes == null)
-                return hexString;
-            var strB = new StringBuilder();
-
-            foreach (var t in bytes)
-                strB.Append(t.ToString("X2"));
-            hexString = strB.ToString();
-
-            return hexString;
-        }
-        public string byteToHexString3(byte bytes)
-        {
-            var hexString = string.Empty;
-
-            if (bytes == null)
-                return hexString;
-            var strB = new StringBuilder();
-
-            strB.Append(bytes.ToString("X2"));
-            hexString = strB.ToString();
-
-            return hexString;
-        }
-        private void pianyiSetToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormPIanYi frmSelectProduct = new FormPIanYi();
-            frmSelectProduct.textBox1.Text = XPianyi.ToString();
-            frmSelectProduct.textBox2.Text = YPianyi.ToString();
-            frmSelectProduct.textBox3.Text = ZPinyi.ToString();
-            string result = "";
-            //List<ProductData> resultList = new List<ProductData>();
-            if (frmSelectProduct.ShowDialog() == DialogResult.OK)
-            {
-                Configuration cfa = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-               cfa.AppSettings.Settings["pianyiliang"].Value = frmSelectProduct.textBox1.Text+","+ frmSelectProduct.textBox2.Text+","+ frmSelectProduct.textBox3.Text;
-
-              
-                cfa.Save();
-            }
-        }
-        private bool IsCanConnect(string url)
-        {
-            try
-            {
-                Ping objPingSender = new Ping();
-                PingOptions objPinOptions = new PingOptions();
-                objPinOptions.DontFragment = true;
-                string data = "";
-                byte[] buffer = Encoding.UTF8.GetBytes(data);
-                int intTimeout = 120;
-                PingReply objPinReply = objPingSender.Send(url, intTimeout, buffer, objPinOptions);
-                string strInfo = objPinReply.Status.ToString();
-                if (strInfo == "Success")
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-        private void addProductToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormAddProduct frmAddProduct = new FormAddProduct();
-            frmAddProduct.Show();
-        }
-        private void selectProductToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormSelectProduct frmSelectProduct = new FormSelectProduct();
-            string result = "";
-            List<ProductData> resultList = new List<ProductData>();
-            if (frmSelectProduct.ShowDialog() == DialogResult.OK)
-            {
-                labelTextProduct.Text = frmSelectProduct.labelComboxProducts.Text;
-
-                var product = Common.SystemConfig.Products.ToList().Find(t => t.Name == labelTextProduct.Text);
-
-                if (product == null) return;
-
-
-                labelTextProduct.textBox.Text = product.Name;
-                labelTextSum.textBox.Text = product.BaseCords.BaseCord1;
-                labelText1.textBox.Text = product.BaseCords.BaseCord2;
-                labelText2.textBox.Text = product.BaseCords.BaseCord3;
-
-                labelText4.textBox.Text = product.BaseCords.BaseCord4;
-                labelText5.textBox.Text = product.BaseCords.BaseCord5;
-                labelText6.textBox.Text = product.BaseCords.BaseCord6;
-                labelText7.textBox.Text = product.BaseCords.BaseCord7;
-                labelText8.textBox.Text = product.BaseCords.BaseCord8;
-
-                serialNo = product.BaseCords.BaseCord1 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord1);
-                serialNo2 = product.BaseCords.BaseCord2 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord2);
-                serialNo3 = product.BaseCords.BaseCord3 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord3);
-                serialNo4 = product.BaseCords.BaseCord4 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord4);
-                serialNo5 = product.BaseCords.BaseCord5 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord5);
-                serialNo6 = product.BaseCords.BaseCord6 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord6);
-                serialNo7 = product.BaseCords.BaseCord7 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord7);
-                serialNo8 = product.BaseCords.BaseCord8 == null ? 1 : Convert.ToInt32(product.BaseCords.BaseCord8);
-
-                dataGridView1.Rows.Clear();
-                foreach (var d in product.Datas)
-                {
-
-                    var rowNum = dataGridView1.Rows.Add();
-                    dataGridView1.Rows[rowNum].Cells["No"].Value = d.No;
-                    dataGridView1.Rows[rowNum].Cells["Type"].Value = d.Type;
-                    dataGridView1.Rows[rowNum].Cells["data"].Value = d.Text;
-                    dataGridView1.Rows[rowNum].Cells["PosX"].Value = d.PosX;
-                    dataGridView1.Rows[rowNum].Cells["PosY"].Value = d.PosY;
-                    dataGridView1.Rows[rowNum].Cells["Angle"].Value = d.Angle;
-                    dataGridView1.Rows[rowNum].Cells["TemplateNo"].Value = d.TemplateNo;
-                    ProductData temp = new ProductData();
-                    temp.PosX = Convert.ToSingle(d.PosX);
-                    temp.PosY = Convert.ToSingle(d.PosY);
-                    temp.PosZ = 0f;
-                    temp.Angle = Convert.ToSingle(d.Angle);
-                    temp.Time = 0f;
-                    temp.TemplateNo = Convert.ToInt32(d.TemplateNo);
-
-
-                    resultList.Add(temp);
-
-                }
-            }
-
-
-
-            if (labelTextProduct.Text != "")
-            {
-                //清空list中的数据
-                routeList.Clear();
-                //_bStartPrint = true;
-                var product = Common.SystemConfig.Products.ToList().Find(x => x.Name == labelTextProduct.Text);
-                if (product == null) return;
-                PrintCal(product.Datas.ToList());
-            }
-
-            pictureBox1.Refresh();
-            MoveToHome();
-
-
-        }
-        private void testPrintToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormAddProduct form = new FormAddProduct();
-            form.isEdit = 1;
-            form.productName = labelTextProduct.Text;
-            form.Show();
-        }
-        public float dis(float x1, float y1, float x2, float y2)
-        {
-            double dx, dy;
-            dx = x2 - x1;
-            dy = y2 - y1;
-            return Convert.ToSingle(Math.Sqrt(dx * dx + dy * dy));
-        }
-        private void viewDataToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            FormBatchInstead form = new FormBatchInstead();
-
-            form.productName = labelTextProduct.Text;
-            form.Show();
-        }
-
-        /// <summary>
-        /// 复制产品
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void startToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            SystemConfig current = Common.SystemConfig;
-            List<SystemConfigProduct> plist = current.Products.ToList();
-            SystemConfigProduct product = plist.Find(x => x.Name == labelTextProduct.Text);
-            SystemConfigProduct copyNew = TransReflection<SystemConfigProduct, SystemConfigProduct>(product);
-
-            copyNew.Name = product.Name + "-copy";
-            plist.Add(copyNew);
-            current.Products = plist.ToArray();
-
-            Common.SaveConfigToFile(current);
-            Common.GetSystemConfigFromXmlFile();
-            MessageBox.Show("复制成功，请重新打开程序");
-        }
-        /// <summary>
-        /// 利用反射进行深拷贝
-        /// </summary>
-        /// <typeparam name="TIn"></typeparam>
-        /// <typeparam name="TOut"></typeparam>
-        /// <param name="tIn"></param>
-        /// <returns></returns>
-        private static TOut TransReflection<TIn, TOut>(TIn tIn)
-        {
-            TOut tOut = Activator.CreateInstance<TOut>();
-            var tInType = tIn.GetType();
-            foreach (var itemOut in tOut.GetType().GetProperties())
-            {
-                var itemIn = tInType.GetProperty(itemOut.Name); ;
-                if (itemIn != null)
-                {
-                    itemOut.SetValue(tOut, itemIn.GetValue(tIn));
-                }
-            }
-            return tOut;
-        }
-        private void PictureBox1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void PictureBox1_Paint(object sender, PaintEventArgs e)
-        {
-            //Graphics g = e.Graphics.DrawLine;
-            for (int i = 0; i < routeList.Count; i++)
-            {
-                e.Graphics.DrawLine(Pens.Black, Math.Abs(routeList[i].startX), Math.Abs(routeList[i].startY), Math.Abs(routeList[i].endX), Math.Abs(routeList[i].endY));
-            }
-            //e.Graphics.DrawLine(Pens.Black, 10, 10, 100, 100);
-
-        }
-        //计算追溯号
-        public string GenerateDate()
-        {
-            DateTime currentDateTime = DateTime.Now;
-            string year = currentDateTime.Year.ToString().Substring(3, 1);
-            string month = currentDateTime.Month.ToString();
-            string day = currentDateTime.Day.ToString();
-
-            switch (month)
-            {
-                case "1":
-                    month = "1";
-                    break;
-                case "2":
-                    month = "2";
-                    break;
-                case "3":
-                    month = "3";
-                    break;
-                case "4":
-                    month = "4";
-                    break;
-                case "5":
-                    month = "5";
-                    break;
-                case "6":
-                    month = "6";
-                    break;
-                case "7":
-                    month = "7";
-                    break;
-                case "8":
-                    month = "8";
-                    break;
-                case "9":
-                    month = "9";
-                    break;
-                case "10":
-                    month = "X";
-                    break;
-                case "11":
-                    month = "Y";
-                    break;
-                case "12":
-                    month = "Z";
-                    break;
-                default:
-                    month = "";
-                    break;
-            }
-
-            switch (day)
-            {
-                case "1":
-                    day = "1";
-                    break;
-                case "2":
-                    day = "2";
-                    break;
-                case "3":
-                    day = "3";
-                    break;
-                case "4":
-                    day = "4";
-                    break;
-                case "5":
-                    day = "5";
-                    break;
-                case "6":
-                    day = "6";
-                    break;
-                case "7":
-                    day = "7";
-                    break;
-                case "8":
-                    day = "8";
-                    break;
-                case "9":
-                    day = "9";
-                    break;
-                case "10":
-                    day = "A";
-                    break;
-                case "11":
-                    day = "B";
-                    break;
-                case "12":
-                    day = "C";
-                    break;
-                case "13":
-                    day = "D";
-                    break;
-                case "14":
-                    day = "E";
-                    break;
-                case "15":
-                    day = "F";
-                    break;
-                case "16":
-                    day = "G";
-                    break;
-                case "17":
-                    day = "H";
-                    break;
-                case "18":
-                    day = "J";
-                    break;
-                case "19":
-                    day = "K";
-                    break;
-                case "20":
-                    day = "L";
-                    break;
-                case "21":
-                    day = "M";
-                    break;
-                case "22":
-                    day = "N";
-                    break;
-                case "23":
-                    day = "P";
-                    break;
-                case "24":
-                    day = "Q";
-                    break;
-                case "25":
-                    day = "R";
-                    break;
-                case "26":
-                    day = "S";
-                    break;
-                case "27":
-                    day = "T";
-                    break;
-                case "28":
-                    day = "U";
-                    break;
-                case "29":
-                    day = "V";
-                    break;
-                case "30":
-                    day = "W";
-                    break;
-                case "31":
-                    day = "X";
-                    break;
-                default:
-                    day = "";
-                    break;
-            }
-
-            return year + month + day + "Y";
         }
         #endregion
 
