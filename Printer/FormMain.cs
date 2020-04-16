@@ -769,7 +769,7 @@ namespace Printer
             }
 
             pictureBox1.Refresh();
-            //MoveToHome();
+            MoveToHome();
 
 
         }
