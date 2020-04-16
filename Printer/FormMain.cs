@@ -147,7 +147,7 @@ namespace Printer
 
             Common.GetSystemConfigFromXmlFile();
 
-            TcpPrinter=ConnectSocket("192.168.1.120", 2000);
+            TcpPrinter = ConnectSocket("192.168.1.120", 2000);
 
             TcpController = ConnectSocket("192.168.1.30", 8088);
 
@@ -157,7 +157,7 @@ namespace Printer
             bool[] arrData = { false, true, false, false };
             ModbusPlc.WriteCoil(RedLampAddress, arrData);
 
-            MoveToHome();
+            //MoveToHome();
 
             var tempProductData = new ProductData
             {
@@ -215,7 +215,7 @@ namespace Printer
                 //double k = Math.Tan(Convert.ToInt32(dataList[i].Angle));
                 //double b = Convert.ToDouble(dataList[i].PosX) - k * Convert.ToDouble(dataList[i].PosY);
                 dataList[i].b = b;
-                dataList[i].k = k;
+                //dataList[i].k = k;
             }
             //根据角度分组
             IEnumerable<IGrouping<string, SystemConfigProductData>> queryAngle = dataList.GroupBy(x => x.Angle);//角度一样的分组
@@ -273,8 +273,6 @@ namespace Printer
                         routeTemp.dataList = routedataList;
                         routeTemp.printPointList = printPointList;
                         routeListTemp.Add(routeTemp);
-
-
                     }
                 }
             }
@@ -387,9 +385,9 @@ namespace Printer
 
         private List<Byte> SocketSendReceive(Socket s, Byte[] bytesSent)
         {
-           
-            s.Send(bytesSent, bytesSent.Length, 0);
             TXTLogHelper.LogBackup("发送给喷码机: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            s.Send(bytesSent, bytesSent.Length, 0);
+           
             int bytes = 0;
             List<Byte> result = new List<Byte>();
             Byte[] bytesReceived = new Byte[256];
@@ -422,8 +420,9 @@ namespace Printer
         }
         private List<Byte> ControlSocketSendReceive(Socket s, Byte[] bytesSent)
         {
-            s.Send(bytesSent, bytesSent.Length, 0);
             TXTLogHelper.LogBackup("发送给控制器:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            s.Send(bytesSent, bytesSent.Length, 0);
+           
             // Receive the server home page content.
             int bytes = 0;
             List<Byte> result = new List<Byte>();
@@ -444,7 +443,6 @@ namespace Printer
         {
             s.Send(bytesSent, bytesSent.Length, 0);
             TXTLogHelper.LogBackup("发送给喷码机:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
-            // Receive the server home page content.
             int bytes = 0;
             List<Byte> result = new List<Byte>();
             Byte[] bytesReceived = new Byte[256];
@@ -463,8 +461,9 @@ namespace Printer
         }
         private void SendOutVar(Socket s, Byte[] bytesSent)
         {
-            s.Send(bytesSent, bytesSent.Length, 0);
             TXTLogHelper.LogBackup("发送给喷码机:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            s.Send(bytesSent, bytesSent.Length, 0);
+           
             // Receive the server home page content.
             int bytes = 0;
             List<Byte> result = new List<Byte>();
@@ -578,7 +577,7 @@ namespace Printer
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            if (bStartService)
+            if(bStartService)
             {
                 MessageBox.Show("服务已启动");
                 return;
@@ -586,8 +585,11 @@ namespace Printer
             bStartService = true;
 
             ControlSocketSendReceive(TcpController, controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x0e }, new byte[] { 0x01, 0x00 }));
-            List<Byte> bytes = ControlSocketSendReceive(TcpController, controlHelper.readData());
-            analyPosition(bytes);
+            //MoveToHome();
+            //List<Byte> bytes = ControlSocketSendReceive(TcpController, controlHelper.readData());
+
+            
+            //analyPosition(bytes);
             Task.Factory.StartNew(() =>
             {
                 CircleMain();
@@ -767,7 +769,7 @@ namespace Printer
             }
 
             pictureBox1.Refresh();
-            MoveToHome();
+            //MoveToHome();
 
 
         }

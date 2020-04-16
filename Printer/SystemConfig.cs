@@ -271,6 +271,7 @@ namespace Printer
 
         private string angleField;
         private string TemplateNoField;
+        private string kField;
 
         /// <remarks/>
         public string No
@@ -362,8 +363,19 @@ namespace Printer
             }
         }
 
-        public double b { get; set; }
-        public double k { get; set; }
+        public double b {
+            get;set;
+        }
+        public string k {
+            get
+            {
+                return this.kField;
+            }
+            set
+            {
+                this.kField = value;
+            }
+        }
     }
 
 

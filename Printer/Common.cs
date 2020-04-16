@@ -149,7 +149,7 @@ namespace Printer
 
         public static void BackupFile()
         {
-            File.Copy(GetConfigFilePath(), @"D:\BackupFile\"+DateTime.Now.ToString("yyyyMMddHHmmss")+".xml", true);
+            //File.Copy(GetConfigFilePath(), @"D:\BackupFile\"+DateTime.Now.ToString("yyyyMMddHHmmss")+".xml", true);
         }
 
     

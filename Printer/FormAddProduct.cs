@@ -52,6 +52,7 @@ namespace Printer
                     dataGridView1.Rows[rowNum].Cells["PosY"].Value = d.PosY;
                     dataGridView1.Rows[rowNum].Cells["Angle"].Value = d.Angle;
                     dataGridView1.Rows[rowNum].Cells["TemplateNo"].Value = d.TemplateNo;
+                    dataGridView1.Rows[rowNum].Cells["k"].Value = d.k;
                 }
             }
             else
@@ -101,6 +102,7 @@ namespace Printer
                         dataTemp.PosY = item.Cells["PosY"].Value==null?"":item.Cells["PosY"].Value.ToString();
                         dataTemp.Angle = item.Cells["Angle"].Value == null ? "" : item.Cells["Angle"].Value.ToString();
                         dataTemp.TemplateNo = item.Cells["TemplateNo"].Value == null ? "" : item.Cells["TemplateNo"].Value.ToString();
+                        dataTemp.k = item.Cells["k"].Value == null ? "" : item.Cells["k"].Value.ToString();
                         if (Convert.ToInt32(dataTemp.PosX) > 10 || Convert.ToInt32(dataTemp.PosX) < -300)
                         {
                             MessageBox.Show(dataTemp.No + "号X坐标超过临界值，请确认");
@@ -153,6 +155,7 @@ namespace Printer
                         dataTemp.PosY = item.Cells["PosY"].Value == null ? "0" : item.Cells["PosY"].Value.ToString();
                         dataTemp.Angle = item.Cells["Angle"].Value == null ? "0" : item.Cells["Angle"].Value.ToString();
                         dataTemp.TemplateNo = item.Cells["TemplateNo"].Value == null ? "1" : item.Cells["TemplateNo"].Value.ToString();
+                        dataTemp.k = item.Cells["k"].Value == null ? "" : item.Cells["k"].Value.ToString();
                         if (Convert.ToInt32(dataTemp.PosX) > 10 || Convert.ToInt32(dataTemp.PosX) <-300)
                         {
                             MessageBox.Show(dataTemp.No+"号X坐标超过临界值，请确认");

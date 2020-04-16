@@ -41,14 +41,6 @@
             this.labelText4 = new UserControls.LabelText();
             this.panel1 = new System.Windows.Forms.Panel();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
-            this.No = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TemplateNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Type = new System.Windows.Forms.DataGridViewComboBoxColumn();
-            this.data = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PosX = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.PosY = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Angle = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.delete = new System.Windows.Forms.DataGridViewButtonColumn();
             this.label1 = new System.Windows.Forms.Label();
             this.labelText3 = new UserControls.LabelText();
             this.labelText2 = new UserControls.LabelText();
@@ -61,6 +53,15 @@
             this.button3 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
+            this.No = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TemplateNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Type = new System.Windows.Forms.DataGridViewComboBoxColumn();
+            this.data = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PosX = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.PosY = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Angle = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.k = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.delete = new System.Windows.Forms.DataGridViewButtonColumn();
             this.toolStripAddProduct.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -234,6 +235,7 @@
             this.PosX,
             this.PosY,
             this.Angle,
+            this.k,
             this.delete});
             this.dataGridView1.Location = new System.Drawing.Point(0, 21);
             this.dataGridView1.Name = "dataGridView1";
@@ -241,63 +243,6 @@
             this.dataGridView1.Size = new System.Drawing.Size(954, 265);
             this.dataGridView1.TabIndex = 2;
             this.dataGridView1.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGridView1_CellContentClick);
-            // 
-            // No
-            // 
-            this.No.HeaderText = "编号";
-            this.No.Name = "No";
-            this.No.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.No.Width = 48;
-            // 
-            // TemplateNo
-            // 
-            this.TemplateNo.HeaderText = "模板编号";
-            this.TemplateNo.Name = "TemplateNo";
-            this.TemplateNo.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.TemplateNo.Width = 80;
-            // 
-            // Type
-            // 
-            this.Type.HeaderText = "类型";
-            this.Type.Items.AddRange(new object[] {
-            "Text",
-            "Barcode"});
-            this.Type.Name = "Type";
-            this.Type.Width = 48;
-            // 
-            // data
-            // 
-            this.data.HeaderText = "数据";
-            this.data.Name = "data";
-            this.data.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.data.Width = 48;
-            // 
-            // PosX
-            // 
-            this.PosX.HeaderText = "X坐标";
-            this.PosX.Name = "PosX";
-            this.PosX.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.PosX.Width = 58;
-            // 
-            // PosY
-            // 
-            this.PosY.HeaderText = "Y坐标";
-            this.PosY.Name = "PosY";
-            this.PosY.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.PosY.Width = 58;
-            // 
-            // Angle
-            // 
-            this.Angle.HeaderText = "角度";
-            this.Angle.Name = "Angle";
-            this.Angle.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
-            this.Angle.Width = 48;
-            // 
-            // delete
-            // 
-            this.delete.HeaderText = "删除";
-            this.delete.Name = "delete";
-            this.delete.Width = 48;
             // 
             // label1
             // 
@@ -437,6 +382,70 @@
             this.button1.TabIndex = 0;
             this.button1.UseVisualStyleBackColor = true;
             // 
+            // No
+            // 
+            this.No.HeaderText = "编号";
+            this.No.Name = "No";
+            this.No.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.No.Width = 48;
+            // 
+            // TemplateNo
+            // 
+            this.TemplateNo.HeaderText = "模板编号";
+            this.TemplateNo.Name = "TemplateNo";
+            this.TemplateNo.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.TemplateNo.Width = 80;
+            // 
+            // Type
+            // 
+            this.Type.HeaderText = "类型";
+            this.Type.Items.AddRange(new object[] {
+            "Text",
+            "Barcode"});
+            this.Type.Name = "Type";
+            this.Type.Width = 48;
+            // 
+            // data
+            // 
+            this.data.HeaderText = "数据";
+            this.data.Name = "data";
+            this.data.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.data.Width = 48;
+            // 
+            // PosX
+            // 
+            this.PosX.HeaderText = "X坐标";
+            this.PosX.Name = "PosX";
+            this.PosX.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.PosX.Width = 58;
+            // 
+            // PosY
+            // 
+            this.PosY.HeaderText = "Y坐标";
+            this.PosY.Name = "PosY";
+            this.PosY.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.PosY.Width = 58;
+            // 
+            // Angle
+            // 
+            this.Angle.HeaderText = "角度";
+            this.Angle.Name = "Angle";
+            this.Angle.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.Angle.Width = 48;
+            // 
+            // k
+            // 
+            this.k.HeaderText = "备注";
+            this.k.Name = "k";
+            this.k.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            this.k.Width = 48;
+            // 
+            // delete
+            // 
+            this.delete.HeaderText = "删除";
+            this.delete.Name = "delete";
+            this.delete.Width = 48;
+            // 
             // FormAddProduct
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 21F);
@@ -492,6 +501,8 @@
         private UserControls.LabelText labelText6;
         private UserControls.LabelText labelText5;
         private UserControls.LabelText labelText4;
+        private System.Windows.Forms.ToolStripButton toolStripButtonOrder;
+        private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.DataGridViewTextBoxColumn No;
         private System.Windows.Forms.DataGridViewTextBoxColumn TemplateNo;
         private System.Windows.Forms.DataGridViewComboBoxColumn Type;
@@ -499,8 +510,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn PosX;
         private System.Windows.Forms.DataGridViewTextBoxColumn PosY;
         private System.Windows.Forms.DataGridViewTextBoxColumn Angle;
+        private System.Windows.Forms.DataGridViewTextBoxColumn k;
         private System.Windows.Forms.DataGridViewButtonColumn delete;
-        private System.Windows.Forms.ToolStripButton toolStripButtonOrder;
-        private System.Windows.Forms.ToolStripButton toolStripButton1;
     }
 }
