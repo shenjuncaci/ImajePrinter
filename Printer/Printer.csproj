@@ -107,6 +107,9 @@
     <Compile Include="printerHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Socket\SocketClient.cs" />
+    <Compile Include="Socket\SocketConnection.cs" />
+    <Compile Include="Socket\SocketServer.cs" />
     <Compile Include="SystemConfig.cs" />
     <Compile Include="TXTLogHelper.cs" />
     <EmbeddedResource Include="FormAddProduct.resx">
