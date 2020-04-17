@@ -41,8 +41,8 @@ namespace Printer
 
         private int prevLength = 30;  //加速和减速的距离
         private DBHelper dbHelper = new DBHelper();
-        public Socket TcpPrinter = null;  //喷码机连接对象
-
+        //public SocketClient TcpPrinter = null;  //喷码机连接对象
+        public SocketClient TcpPrinter = new SocketClient("192.168.1.120", 2000);  //喷码机连接对象
 
         public Socket TcpController = null; //控制器连接对象
 
@@ -85,6 +85,8 @@ namespace Printer
         bool bCanOpen;
         bool bSendData=false;
 
+        bool bIsSend = false;
+
         E_system_status eSystemStatus = E_system_status.Idle;
         EPrintStep ePrintStep = EPrintStep.PrintIdle;
 
@@ -117,6 +119,7 @@ namespace Printer
         }
         private void FormMain_Load(object sender, EventArgs e)
         {
+            //var temp = printerHelper.SendDataToTemplate(new List<string>() { "12345", "abcde","ABCDE" });
             //IsCanConnect("172.168.0.136");
             //加载偏移量
             try
@@ -147,8 +150,23 @@ namespace Printer
 
             Common.GetSystemConfigFromXmlFile();
 
-            TcpPrinter = ConnectSocket("192.168.1.120", 2000);
+            //TcpPrinter = ConnectSocket("192.168.1.120", 2000);
+            TcpPrinter.HandleRecMsg = new Action<byte[], SocketClient>((bytes, theClient) =>
+            {
+                //TXTLogHelper.LogBackup("喷码机收到消息:" + byteToHexString(bytes));  绑定接收消息
+                if(bIsSend)
+                {
+                    if(bytes[0]==0xE7)
+                    {
+                        TcpPrinter.Send(printerHelper.SendDataToTemplate(sendDataList[sendNum].Split(',').ToList()));
+                        sendNum++;
+                    }
+                }
+            });
 
+            TcpPrinter.StartClient();
+
+            TcpPrinter.Send(printerHelper.sendStart());
             TcpController = ConnectSocket("192.168.1.30", 8088);
 
             ModbusPlc.ConnectServer();
@@ -1161,6 +1179,7 @@ namespace Printer
                                 bMoveDone = GetStatusOfRtexController();
                                 if (bMoveDone)
                                 {
+                                    bIsSend = false;  //移动到结束点了
                                     ePrintStep = EPrintStep.PrintIdle;
                                     nRouteIndex++;
                                 }
@@ -1349,6 +1368,8 @@ namespace Printer
             //Thread.Sleep(50);
             //TcpController.Send(controlHelper.PackageModbusTcpFrame10(new byte[] { 0x00, 0x69 }, new byte[] { 0x01, 0x00 }));
         }
+        List<string> sendDataList = new List<string>();
+        int sendNum = 0;
         public void SendPrinterData(route routeEntity)
         {
             SystemConfig current = Common.SystemConfig;
@@ -1362,7 +1383,8 @@ namespace Printer
             };
             Invoke(actionDisplayChaseNo, chaseNo);
 
-            List<string> sendDataList = new List<string>();
+            sendDataList.Clear();
+            
 
             //发送给喷码机的计数器初始值
             int currentCount = 0;
@@ -1621,56 +1643,68 @@ namespace Printer
                 }
 
             }
-            if (routeEntity.dataType == "Text")
-            {
-                //SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
-                //Thread.Sleep(100);
-                //SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
-                //Thread.Sleep(100);
-                //SocketSendReceive(TcpPrinter, printerHelper.DataQueueDisable());
-                //Thread.Sleep(100);
-                //SocketSendReceive(TcpPrinter, printerHelper.enableDataQueue());
-                //Thread.Sleep(100);
-                ////SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
 
-                //List<List<string>> sendData = new List<List<string>>();
-                //for (int i = 0; i < sendDataList.Count; i++)
-                //{
-                //    List<string> temp = sendDataList[i].Split(',').ToList();
-                //    sendData.Add(temp);
-                //}
+            TcpPrinter.Send(printerHelper.SendSelectByte(routeEntity.TemplateNo)); // 切换模板2
+            Thread.Sleep(100);
+            TcpPrinter.Send(printerHelper.SendDataToTemplate(sendDataList[0].Split(',').ToList()));
+            bIsSend = true;
+            sendNum = 1;
 
-                //SocketSendReceive(TcpPrinter, printerHelper.DataQueueSendDataList(sendData));
-                //TcpPrinter.Send(printerHelper.sendDataQueue2(sendData));
-                SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
-                //TcpPrinter.Send(printerHelper.SendSelectByte(routeEntity.TemplateNo)); // 切换模板2
-                //Thread.Sleep(50);
-                for (int i = 0; i < sendDataList[0].Split(',').Length; i++)
-                {
-                    SelectTemplate(TcpPrinter, printerHelper.SendDataByte(sendDataList[0].Split(',')[i], i + 1));
-                    //TcpPrinter.Send(printerHelper.SendDataByte(sendDataList[0].Split(',')[i], i + 1));
-                    //Thread.Sleep(50);
-                }
-
-
-
-
-            }
-            else if (routeEntity.dataType == "Barcode")
+            if (routeEntity.dataType == "Barcode")
             {
                 Common.SaveConfigToFile(current);
-
-                SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
-                Thread.Sleep(100);
-                SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
-                Thread.Sleep(100);
-                SocketSendReceive(TcpPrinter, printerHelper.DataQueueDisable());
-                Thread.Sleep(100);
-                SocketSendReceive(TcpPrinter, printerHelper.enableDataQueue());
-                Thread.Sleep(100);
-                SocketSendReceive(TcpPrinter, printerHelper.sendDataQueue(sendDataList));
-
             }
+            //if (routeEntity.dataType == "Text")
+            //{
+            //    //SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
+            //    //Thread.Sleep(100);
+            //    //SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
+            //    //Thread.Sleep(100);
+            //    //SocketSendReceive(TcpPrinter, printerHelper.DataQueueDisable());
+            //    //Thread.Sleep(100);
+            //    //SocketSendReceive(TcpPrinter, printerHelper.enableDataQueue());
+            //    //Thread.Sleep(100);
+            //    ////SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
+
+                //    //List<List<string>> sendData = new List<List<string>>();
+                //    //for (int i = 0; i < sendDataList.Count; i++)
+                //    //{
+                //    //    List<string> temp = sendDataList[i].Split(',').ToList();
+                //    //    sendData.Add(temp);
+                //    //}
+
+                //    //SocketSendReceive(TcpPrinter, printerHelper.DataQueueSendDataList(sendData));
+                //    //TcpPrinter.Send(printerHelper.sendDataQueue2(sendData));
+                //    TcpPrinter.Send(printerHelper.SendSelectByte(routeEntity.TemplateNo)); // 切换模板2
+                //    //SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
+                //    //TcpPrinter.Send(printerHelper.SendSelectByte(routeEntity.TemplateNo)); // 切换模板2
+                //    //Thread.Sleep(50);
+                //    for (int i = 0; i < sendDataList[0].Split(',').Length; i++)
+                //    {
+                //        SelectTemplate(TcpPrinter, printerHelper.SendDataByte(sendDataList[0].Split(',')[i], i + 1));
+                //        //TcpPrinter.Send(printerHelper.SendDataByte(sendDataList[0].Split(',')[i], i + 1));
+                //        //Thread.Sleep(50);
+                //    }
+
+
+
+
+                //}
+                //else if (routeEntity.dataType == "Barcode")
+                //{
+                //    Common.SaveConfigToFile(current);
+
+                //    SocketSendReceive(TcpPrinter, printerHelper.resetDataQueue());
+                //    Thread.Sleep(100);
+                //    SelectTemplate(TcpPrinter, printerHelper.SelectJobByIndex(routeEntity.TemplateNo));
+                //    Thread.Sleep(100);
+                //    SocketSendReceive(TcpPrinter, printerHelper.DataQueueDisable());
+                //    Thread.Sleep(100);
+                //    SocketSendReceive(TcpPrinter, printerHelper.enableDataQueue());
+                //    Thread.Sleep(100);
+                //    SocketSendReceive(TcpPrinter, printerHelper.sendDataQueue(sendDataList));
+
+                //}
         }
         /// <summary>
         /// 解析返回的坐标
