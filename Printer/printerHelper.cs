@@ -45,37 +45,6 @@ namespace Printer
             return results;
         }
 
-
-        public static byte[] SendDataToTemplate(List<string> sendData)
-        {
-            int datalen = 0;
-            List<byte[]> sendDatabyte = new List<byte[]>();
-            for (int i = 0; i < sendData.Count; i++)
-            {
-                byte[] byteArray = Encoding.ASCII.GetBytes(sendData[i]);
-                sendDatabyte.Add(byteArray);
-                datalen = datalen + byteArray.Length;
-            }
-            int len = 1 + 2 + 3*sendData.Count()+ datalen + 1;
-            var results = new List<byte>();
-            results.Add(0xE8);
-            results.Add(SwapInt(len-4)[0]);
-            results.Add(SwapInt(len - 4)[1]);
-
-            for(int i=0;i< sendDatabyte.Count;i++)
-            {
-                results.Add(SwapInt(i+1)[1]);
-
-                results.Add(SwapInt(sendDatabyte[i].Length)[0]);
-                results.Add(SwapInt(sendDatabyte[i].Length)[1]);
-
-                results.AddRange(sendDatabyte[i].ToList());
-            }
-
-            var crc = Crc(ToHexString(results.ToArray()));
-            results.Add(Convert.ToByte(crc, 16));
-            return results.ToArray();
-        }
         /// <summary>
         /// 选择模板
         /// </summary>
@@ -372,18 +341,7 @@ namespace Printer
             return result.ToArray();
         }
 
-        public static byte[] sendStart()
-        {
-            List<byte> result = new List<byte>();
-            result.Add(0x41);
-            result.Add(0x00);
-            result.Add(0x01);
-            result.Add(0x01);
-            result.Add(0x41);
-            //var crc = Crc(ToHexString(result.ToArray()));
-            //result.Add(Convert.ToByte(crc, 16));
-            return result.ToArray();
-        }
+
 
         /// <summary>
         /// This transmission selects a job library according 
@@ -603,7 +561,6 @@ namespace Printer
         {
             return true;
         }
-
 
         #endregion
 
