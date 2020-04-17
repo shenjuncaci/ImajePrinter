@@ -392,27 +392,42 @@ namespace Printer
             List<Byte> result = new List<Byte>();
             Byte[] bytesReceived = new Byte[256];
             bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-           
-            if (bytesReceived[0] != 0x06)
+
+            //if (bytesReceived[0] != 0x06)
+            //{
+            //    SocketSendReceive(s, bytesSent);
+            //}
+            //else
+            //{
+            //    if (bytes == 1)
+            //    {
+            //        bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+            //        for (int i = 0; i < bytes; i++)
+            //        {
+            //            result.Add(bytesReceived[i]);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        for (int i = 1; i < bytes; i++)
+            //        {
+            //            result.Add(bytesReceived[i]);
+            //        }
+            //    }
+            //}
+            if (bytes == 1)
             {
-                SocketSendReceive(s, bytesSent);
+                bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+                for (int i = 0; i < bytes; i++)
+                {
+                    result.Add(bytesReceived[i]);
+                }
             }
             else
             {
-                if (bytes == 1)
+                for (int i = 1; i < bytes; i++)
                 {
-                    bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-                    for (int i = 0; i < bytes; i++)
-                    {
-                        result.Add(bytesReceived[i]);
-                    }
-                }
-                else
-                {
-                    for (int i = 1; i < bytes; i++)
-                    {
-                        result.Add(bytesReceived[i]);
-                    }
+                    result.Add(bytesReceived[i]);
                 }
             }
             TXTLogHelper.LogBackup(DateTime.Now.ToString("喷码机接收: " + "yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString2(result));
@@ -441,17 +456,17 @@ namespace Printer
         }
         private void SelectTemplate(Socket s, Byte[] bytesSent)
         {
-            s.Send(bytesSent, bytesSent.Length, 0);
             TXTLogHelper.LogBackup("发送给喷码机:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString(bytesSent));
+            s.Send(bytesSent, bytesSent.Length, 0);
             int bytes = 0;
             List<Byte> result = new List<Byte>();
             Byte[] bytesReceived = new Byte[256];
             bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
             TXTLogHelper.LogBackup("喷码机接收:  " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss fff") + " " + byteToHexString3(bytesReceived[0]));
-            if (bytesReceived[0] != 0x06)
-            {
-                SocketSendReceive(s, bytesSent);
-            }
+            //if (bytesReceived[0] != 0x06)
+            //{
+            //    SocketSendReceive(s, bytesSent);
+            //}
             //bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
             //for (int i = 0; i < bytes; i++)
             //{
